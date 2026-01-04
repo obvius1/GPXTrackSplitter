@@ -26,10 +26,32 @@ h1 {
     color: #333;
 }
 
+.header-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+}
+
 .controls {
     display: flex;
     gap: 10px;
     align-items: center;
+    flex: 1;
+}
+
+.project-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.project-controls button {
+    background: #2196F3;
+}
+
+.project-controls button:hover:not(:disabled) {
+    background: #1976D2;
 }
 
 button {

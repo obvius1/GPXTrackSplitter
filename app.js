@@ -377,8 +377,85 @@ function deleteMarker(index) {
     updateTrackList();
 }
 
+// Save project to JSON
+function saveProject() {
+    if (gpxData.length === 0) {
+        alert('Geen data om op te slaan');
+        return;
+    }
+    
+    const markerIndices = splitMarkers.map(marker => marker.pointIndex);
+    
+    const projectData = {
+        version: '1.0',
+        gpxData: gpxData,
+        markerIndices: markerIndices,
+        savedAt: new Date().toISOString()
+    };
+    
+    const jsonString = JSON.stringify(projectData, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `gpx-track-project-${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    
+    URL.revokeObjectURL(url);
+}
+
+// Load project from JSON
+function loadProject(jsonData) {
+    try {
+        const projectData = JSON.parse(jsonData);
+        
+        if (!projectData.gpxData || !Array.isArray(projectData.gpxData)) {
+            alert('Ongeldig project bestand');
+            return;
+        }
+        
+        clearAll();
+        
+        gpxData = projectData.gpxData;
+        
+        // Draw GPX track
+        const latlngs = gpxData.map(p => [p.lat, p.lon]);
+        gpxPolyline = L.polyline(latlngs, {
+            color: '#2196F3',
+            weight: 4,
+            opacity: 0.8
+        }).addTo(map);
+        
+        map.fitBounds(gpxPolyline.getBounds());
+        
+        // Restore markers
+        if (projectData.markerIndices && Array.isArray(projectData.markerIndices)) {
+            projectData.markerIndices.forEach(index => {
+                addSplitMarker(index);
+            });
+        }
+        
+        document.getElementById('addPointBtn').disabled = false;
+        document.getElementById('clearBtn').disabled = false;
+        document.getElementById('saveProjectBtn').disabled = false;
+        document.getElementById('loadProjectBtnTrigger').disabled = false;
+        
+        updateTrackList();
+    } catch (error) {
+        alert('Fout bij het laden van project: ' + error.message);
+    }
+}
+
 // Clear all
 function clearAll() {
+    // Only show confirmation if there's actually data to clear
+    if (gpxData.length > 0 || splitMarkers.length > 0) {
+        if (!confirm('Weet je zeker dat je alles wilt wissen? Dit kan niet ongedaan worden gemaakt.')) {
+            return;
+        }
+    }
+    
     if (gpxPolyline) {
         map.removeLayer(gpxPolyline);
         gpxPolyline = null;
@@ -394,6 +471,7 @@ function clearAll() {
     document.getElementById('trackList').innerHTML = '<p class="placeholder">Laad een GPX bestand om te beginnen</p>';
     document.getElementById('addPointBtn').disabled = true;
     document.getElementById('clearBtn').disabled = true;
+    document.getElementById('saveProjectBtn').disabled = true;
 }
 
 // Event listeners
@@ -424,7 +502,8 @@ document.getElementById('gpxFileInput').addEventListener('change', function(e) {
         
         document.getElementById('addPointBtn').disabled = false;
         document.getElementById('clearBtn').disabled = false;
-        
+        document.getElementById('saveProjectBtn').disabled = false;
+        document.getElementById('loadProjectBtnTrigger').disabled = false;
         updateTrackList();
     };
     
@@ -438,6 +517,27 @@ document.getElementById('addPointBtn').addEventListener('click', function() {
 });
 
 document.getElementById('clearBtn').addEventListener('click', clearAll);
+
+document.getElementById('saveProjectBtn').addEventListener('click', saveProject);
+
+document.getElementById('loadProjectBtnTrigger').addEventListener('click', function() {
+    document.getElementById('loadProjectBtn').click();
+});
+
+document.getElementById('loadProjectBtn').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        loadProject(event.target.result);
+    };
+    
+    reader.readAsText(file);
+    
+    // Reset file input
+    e.target.value = '';
+});
 
 // Initialize
 initMap();

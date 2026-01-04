@@ -11,10 +11,17 @@
     <div class="container">
         <header>
             <h1>GPX Track Splitter</h1>
-            <div class="controls">
-                <input type="file" id="gpxFileInput" accept=".gpx" />
-                <button id="clearBtn" disabled>Wis alles</button>
-                <button id="addPointBtn" disabled>Voeg splitpunt toe (klik op kaart)</button>
+            <div class="header-controls">
+                <div class="controls">
+                    <input type="file" id="gpxFileInput" accept=".gpx" />
+                    <button id="addPointBtn" disabled>Voeg splitpunt toe (klik op kaart)</button>
+                    <button id="clearBtn" disabled>Wis alles</button>
+                </div>
+                <div class="project-controls">
+                    <input type="file" id="loadProjectBtn" accept=".json" style="display:none;" />
+                    <button id="loadProjectBtnTrigger">Laad project</button>
+                    <button id="saveProjectBtn" disabled>Bewaar project</button>
+                </div>
             </div>
         </header>
 
