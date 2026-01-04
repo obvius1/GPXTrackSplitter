@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPX Track Splitter</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>GPX Track Splitter</h1>
+            <div class="controls">
+                <input type="file" id="gpxFileInput" accept=".gpx" />
+                <button id="clearBtn" disabled>Wis alles</button>
+                <button id="addPointBtn" disabled>Voeg splitpunt toe (klik op kaart)</button>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <div id="map"></div>
+            
+            <div class="sidebar">
+                <h2>Tracks overzicht</h2>
+                <div id="trackList">
+                    <p class="placeholder">Laad een GPX bestand om te beginnen</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
