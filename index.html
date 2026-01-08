@@ -14,7 +14,14 @@
             <div class="header-controls">
                 <div class="controls">
                     <input type="file" id="gpxFileInput" accept=".gpx" />
-                    <button id="addPointBtn" disabled>Voeg splitpunt toe (klik op kaart)</button>
+                    <select id="markerTypeSelect" disabled>
+                        <option value="split">Splitpunt</option>
+                        <option value="wildcamp">Wildcamperen</option>
+                        <option value="camping">Camping</option>
+                        <option value="hotel">Hotel/B&B</option>
+                        <option value="rest">Rustpunt</option>
+                    </select>
+                    <button id="addPointBtn" disabled>Voeg punt toe (klik op kaart)</button>
                     <button id="clearBtn" disabled>Wis alles</button>
                 </div>
                 <div class="project-controls">
@@ -34,6 +41,20 @@
                     <p class="placeholder">Laad een GPX bestand om te beginnen</p>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Modal voor marker type wijzigen -->
+    <div id="markerEditModal" class="modal">
+        <div class="modal-content">
+            <h3>Wijzig punt type</h3>
+            <select id="editMarkerTypeSelect">
+                <option value="split">🚩 Splitpunt</option>
+                <option value="wildcamp">⛺ Wildcamperen</option>
+                <option value="camping">🏕️ Camping</option>
+                <option value="hotel">🏨 Hotel/B&B</option>
+                <option value="rest">☕ Rustpunt</option>
+            </select>
         </div>
     </div>
 

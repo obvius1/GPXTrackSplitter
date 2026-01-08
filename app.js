@@ -5,6 +5,36 @@ let splitMarkers = [];
 let gpxPolyline;
 let segmentPolylines = [];
 let isAddingPoint = false;
+let editingMarker = null;
+
+// Marker types configuration
+const markerTypes = {
+    split: {
+        name: 'Splitpunt',
+        color: 'red',
+        icon: '🚩'
+    },
+    wildcamp: {
+        name: 'Wildcamperen',
+        color: 'green',
+        icon: '⛺'
+    },
+    camping: {
+        name: 'Camping',
+        color: 'blue',
+        icon: '🏕️'
+    },
+    hotel: {
+        name: 'Hotel/B&B',
+        color: 'violet',
+        icon: '🏨'
+    },
+    rest: {
+        name: 'Rustpunt',
+        color: 'orange',
+        icon: '☕'
+    }
+};
 
 // Initialize map
 function initMap() {
@@ -119,8 +149,9 @@ function findClosestPointIndex(latlng) {
 function onMapClick(e) {
     if (!isAddingPoint || gpxData.length === 0) return;
     
+    const markerType = document.getElementById('markerTypeSelect').value;
     const closestIndex = findClosestPointIndex(e.latlng);
-    addSplitMarker(closestIndex);
+    addSplitMarker(closestIndex, markerType);
     
     isAddingPoint = false;
     document.getElementById('addPointBtn').classList.remove('active');
@@ -129,13 +160,14 @@ function onMapClick(e) {
 }
 
 // Add split marker
-function addSplitMarker(pointIndex) {
+function addSplitMarker(pointIndex, type = 'split') {
     const point = gpxData[pointIndex];
+    const markerConfig = markerTypes[type];
     
     const marker = L.marker([point.lat, point.lon], {
         draggable: true,
         icon: L.icon({
-            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+            iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${markerConfig.color}.png`,
             shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
             iconSize: [25, 41],
             iconAnchor: [12, 41],
@@ -145,6 +177,10 @@ function addSplitMarker(pointIndex) {
     }).addTo(map);
     
     marker.pointIndex = pointIndex;
+    marker.markerType = type;
+    
+    // Add popup with marker info
+    marker.bindPopup(`${markerConfig.icon} ${markerConfig.name}`);
     
     marker.on('dragend', function(e) {
         const newLatLng = e.target.getLatLng();
@@ -155,6 +191,12 @@ function addSplitMarker(pointIndex) {
         marker.setLatLng([newPoint.lat, newPoint.lon]);
         
         updateTrackList();
+    });
+    
+    // Add click event to edit marker type
+    marker.on('click', function(e) {
+        L.DomEvent.stopPropagation(e);
+        openMarkerEditModal(marker);
     });
     
     splitMarkers.push(marker);
@@ -301,8 +343,12 @@ function updateTrackList() {
             map.fitBounds(segmentPoly.getBounds(), { padding: [50, 50] });
         });
         
+        const markerInfo = segment.markerIndex >= 0 ? splitMarkers[segment.markerIndex] : null;
+        const markerTypeInfo = markerInfo ? markerTypes[markerInfo.markerType] : null;
+        
         trackItem.innerHTML = `
             <h3 style="color: ${difficulty.color};">Track ${index + 1} <span style="font-size: 12px; font-weight: normal;">(${difficulty.level})</span></h3>
+            ${markerTypeInfo ? `<div class="marker-type-badge" style="background: ${markerTypeInfo.color}; color: white; padding: 2px 8px; border-radius: 3px; display: inline-block; font-size: 11px; margin-bottom: 8px;">${markerTypeInfo.icon} ${markerTypeInfo.name}</div>` : ''}
             <div class="track-stats">
                 <div class="stat">
                     <span class="stat-label">Afstand:</span>
@@ -325,7 +371,7 @@ function updateTrackList() {
                     <span class="stat-value">${formatHours(stats.hours)}</span>
                 </div>
             </div>
-            ${segment.markerIndex >= 0 ? `<button class="delete-marker-btn" onclick="deleteMarker(${segment.markerIndex})">Verwijder splitpunt</button>` : ''}
+            ${segment.markerIndex >= 0 ? `<button class="delete-marker-btn" onclick="deleteMarker(${segment.markerIndex})">Verwijder punt</button>` : ''}
         `;
         
         trackList.appendChild(trackItem);
@@ -377,6 +423,50 @@ function deleteMarker(index) {
     updateTrackList();
 }
 
+// Open marker edit modal
+function openMarkerEditModal(marker) {
+    editingMarker = marker;
+    const modal = document.getElementById('markerEditModal');
+    const select = document.getElementById('editMarkerTypeSelect');
+    
+    select.value = marker.markerType;
+    modal.style.display = 'flex';
+}
+
+// Close marker edit modal
+function closeMarkerEditModal() {
+    const modal = document.getElementById('markerEditModal');
+    modal.style.display = 'none';
+    editingMarker = null;
+}
+
+// Update marker type
+function updateMarkerType() {
+    if (!editingMarker) return;
+    
+    const newType = document.getElementById('editMarkerTypeSelect').value;
+    const markerConfig = markerTypes[newType];
+    
+    // Update marker type
+    editingMarker.markerType = newType;
+    
+    // Update marker icon
+    editingMarker.setIcon(L.icon({
+        iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${markerConfig.color}.png`,
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
+    }));
+    
+    // Update popup
+    editingMarker.setPopupContent(`${markerConfig.icon} ${markerConfig.name}`);
+    
+    closeMarkerEditModal();
+    updateTrackList();
+}
+
 // Save project to JSON
 function saveProject() {
     if (gpxData.length === 0) {
@@ -384,12 +474,15 @@ function saveProject() {
         return;
     }
     
-    const markerIndices = splitMarkers.map(marker => marker.pointIndex);
+    const markers = splitMarkers.map(marker => ({
+        pointIndex: marker.pointIndex,
+        type: marker.markerType
+    }));
     
     const projectData = {
-        version: '1.0',
+        version: '2.0',
         gpxData: gpxData,
-        markerIndices: markerIndices,
+        markers: markers,
         savedAt: new Date().toISOString()
     };
     
@@ -429,13 +522,20 @@ function loadProject(jsonData) {
         
         map.fitBounds(gpxPolyline.getBounds());
         
-        // Restore markers
-        if (projectData.markerIndices && Array.isArray(projectData.markerIndices)) {
+        // Restore markers (support both old and new format)
+        if (projectData.markers && Array.isArray(projectData.markers)) {
+            // New format (v2.0)
+            projectData.markers.forEach(markerData => {
+                addSplitMarker(markerData.pointIndex, markerData.type || 'split');
+            });
+        } else if (projectData.markerIndices && Array.isArray(projectData.markerIndices)) {
+            // Old format (v1.0) - backwards compatibility
             projectData.markerIndices.forEach(index => {
-                addSplitMarker(index);
+                addSplitMarker(index, 'split');
             });
         }
         
+        document.getElementById('markerTypeSelect').disabled = false;
         document.getElementById('addPointBtn').disabled = false;
         document.getElementById('clearBtn').disabled = false;
         document.getElementById('saveProjectBtn').disabled = false;
@@ -500,6 +600,7 @@ document.getElementById('gpxFileInput').addEventListener('change', function(e) {
         
         map.fitBounds(gpxPolyline.getBounds());
         
+        document.getElementById('markerTypeSelect').disabled = false;
         document.getElementById('addPointBtn').disabled = false;
         document.getElementById('clearBtn').disabled = false;
         document.getElementById('saveProjectBtn').disabled = false;
@@ -513,7 +614,7 @@ document.getElementById('gpxFileInput').addEventListener('change', function(e) {
 document.getElementById('addPointBtn').addEventListener('click', function() {
     isAddingPoint = !isAddingPoint;
     this.classList.toggle('active', isAddingPoint);
-    this.textContent = isAddingPoint ? 'Klik op de kaart...' : 'Voeg splitpunt toe (klik op kaart)';
+    this.textContent = isAddingPoint ? 'Klik op de kaart...' : 'Voeg punt toe (klik op kaart)';
 });
 
 document.getElementById('clearBtn').addEventListener('click', clearAll);
@@ -537,6 +638,18 @@ document.getElementById('loadProjectBtn').addEventListener('change', function(e)
     
     // Reset file input
     e.target.value = '';
+});
+
+// Event listeners for marker edit modal
+document.getElementById('editMarkerTypeSelect').addEventListener('change', function() {
+    updateMarkerType();
+});
+
+// Close modal when clicking outside
+document.getElementById('markerEditModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeMarkerEditModal();
+    }
 });
 
 // Initialize
