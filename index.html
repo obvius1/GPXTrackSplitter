@@ -32,6 +32,12 @@
                     <button id="undoBtn" disabled>Ongedaan</button>
                     <button id="clearBtn" disabled>Wissen</button>
                 </div>
+                <div class="project-controls">
+                    <input type="file" id="loadProjectBtn" accept=".json" style="display:none;" />
+                    <button id="loadProjectBtnTrigger">Laad project</button>
+                    <button id="saveProjectBtn" disabled>Bewaar project</button>
+                    <button id="settingsBtn">Instellingen</button>
+                </div>
             </div>
         </header>
 
@@ -42,10 +48,9 @@
                 <button id="closeMenu" class="close-menu">&times;</button>
             </div>
             <div class="slide-menu-content">
-                <input type="file" id="loadProjectBtn" accept=".json" style="display:none;" />
-                <button id="loadProjectBtnTrigger" class="menu-button">Laad project</button>
-                <button id="saveProjectBtn" disabled class="menu-button">Bewaar project</button>
-                <button id="settingsBtn" class="menu-button">Instellingen</button>
+                <button id="loadProjectBtnMobile" class="menu-button">Laad project</button>
+                <button id="saveProjectBtnMobile" disabled class="menu-button">Bewaar project</button>
+                <button id="settingsBtnMobile" class="menu-button">Instellingen</button>
             </div>
         </div>
         <div id="menuOverlay" class="menu-overlay"></div>

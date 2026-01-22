@@ -845,6 +845,32 @@ document.querySelectorAll('.menu-button').forEach(button => {
     });
 });
 
+// Mobile menu button handlers
+document.getElementById('loadProjectBtnMobile').addEventListener('click', function() {
+    document.getElementById('loadProjectBtn').click();
+});
+
+document.getElementById('saveProjectBtnMobile').addEventListener('click', saveProject);
+
+document.getElementById('settingsBtnMobile').addEventListener('click', openSettingsModal);
+
+// Update mobile save button state when main button changes
+const observer = new MutationObserver(function(mutations) {
+    mutations.forEach(function(mutation) {
+        if (mutation.attributeName === 'disabled') {
+            const mainBtn = document.getElementById('saveProjectBtn');
+            const mobileBtn = document.getElementById('saveProjectBtnMobile');
+            if (mainBtn.disabled) {
+                mobileBtn.disabled = true;
+            } else {
+                mobileBtn.disabled = false;
+            }
+        }
+    });
+});
+
+observer.observe(document.getElementById('saveProjectBtn'), { attributes: true });
+
 // Sidebar toggle functionality
 document.getElementById('toggleSidebar').addEventListener('click', function() {
     const trackList = document.getElementById('trackList');
