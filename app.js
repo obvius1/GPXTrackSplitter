@@ -178,7 +178,7 @@ function calculateElevation(points) {
     }
     
     // Calculate gain/loss with threshold to ignore small variations
-    const threshold = 2; // Only count changes > 2 meters
+    const threshold = 0.5; // Only count changes > 0.5 meter
     let gain = 0;
     let loss = 0;
     let cumulative = 0;
