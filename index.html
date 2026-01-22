@@ -10,7 +10,14 @@
 <body>
     <div class="container">
         <header>
-            <h1>GPX Track Splitter</h1>
+            <div class="header-top">
+                <h1>GPX Track Splitter</h1>
+                <button id="menuToggle" class="menu-toggle" aria-label="Menu">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
             <div class="header-controls">
                 <div class="controls">
                     <input type="file" id="gpxFileInput" accept=".gpx" />
@@ -21,9 +28,9 @@
                         <option value="hotel">Hotel/B&B</option>
                         <option value="rest">Rustpunt</option>
                     </select>
-                    <button id="addPointBtn" disabled>Voeg punt toe (klik op kaart)</button>
-                    <button id="undoBtn" disabled>Ongedaan maken</button>
-                    <button id="clearBtn" disabled>Wis alles</button>
+                    <button id="addPointBtn" disabled>Punt toevoegen</button>
+                    <button id="undoBtn" disabled>Ongedaan</button>
+                    <button id="clearBtn" disabled>Wissen</button>
                 </div>
                 <div class="project-controls">
                     <input type="file" id="loadProjectBtn" accept=".json" style="display:none;" />
@@ -34,12 +41,29 @@
             </div>
         </header>
 
+        <!-- Slide-out menu -->
+        <div id="slideMenu" class="slide-menu">
+            <div class="slide-menu-header">
+                <h2>Menu</h2>
+                <button id="closeMenu" class="close-menu">&times;</button>
+            </div>
+            <div class="slide-menu-content">
+                <button id="loadProjectBtnMobile" class="menu-button">Laad project</button>
+                <button id="saveProjectBtnMobile" disabled class="menu-button">Bewaar project</button>
+                <button id="settingsBtnMobile" class="menu-button">Instellingen</button>
+            </div>
+        </div>
+        <div id="menuOverlay" class="menu-overlay"></div>
+
         <div class="main-content">
             <div id="map"></div>
             
             <div class="sidebar">
-                <h2>Tracks overzicht</h2>
-                <div id="trackList">
+                <div class="sidebar-header">
+                    <h2>Tracks overzicht</h2>
+                    <button id="toggleSidebar" class="toggle-sidebar">▼</button>
+                </div>
+                <div id="trackList" class="track-list">
                     <p class="placeholder">Laad een GPX bestand om te beginnen</p>
                 </div>
             </div>

@@ -817,6 +817,76 @@ document.getElementById('settingsModal').addEventListener('click', function(e) {
     }
 });
 
+// Burger menu functionality
+document.getElementById('menuToggle').addEventListener('click', function() {
+    document.getElementById('slideMenu').classList.add('active');
+    document.getElementById('menuOverlay').classList.add('active');
+});
+
+document.getElementById('closeMenu').addEventListener('click', function() {
+    document.getElementById('slideMenu').classList.remove('active');
+    document.getElementById('menuOverlay').classList.remove('active');
+});
+
+document.getElementById('menuOverlay').addEventListener('click', function() {
+    document.getElementById('slideMenu').classList.remove('active');
+    document.getElementById('menuOverlay').classList.remove('active');
+});
+
+// Close menu after selecting an option
+document.querySelectorAll('.menu-button').forEach(button => {
+    button.addEventListener('click', function() {
+        if (!this.disabled) {
+            setTimeout(() => {
+                document.getElementById('slideMenu').classList.remove('active');
+                document.getElementById('menuOverlay').classList.remove('active');
+            }, 100);
+        }
+    });
+});
+
+// Mobile menu button handlers
+document.getElementById('loadProjectBtnMobile').addEventListener('click', function() {
+    document.getElementById('loadProjectBtn').click();
+});
+
+document.getElementById('saveProjectBtnMobile').addEventListener('click', saveProject);
+
+document.getElementById('settingsBtnMobile').addEventListener('click', openSettingsModal);
+
+// Update mobile save button state when main button changes
+const observer = new MutationObserver(function(mutations) {
+    mutations.forEach(function(mutation) {
+        if (mutation.attributeName === 'disabled') {
+            const mainBtn = document.getElementById('saveProjectBtn');
+            const mobileBtn = document.getElementById('saveProjectBtnMobile');
+            if (mainBtn.disabled) {
+                mobileBtn.disabled = true;
+            } else {
+                mobileBtn.disabled = false;
+            }
+        }
+    });
+});
+
+observer.observe(document.getElementById('saveProjectBtn'), { attributes: true });
+
+// Sidebar toggle functionality
+document.getElementById('toggleSidebar').addEventListener('click', function() {
+    const trackList = document.getElementById('trackList');
+    const sidebar = document.querySelector('.sidebar');
+    const button = this;
+    
+    trackList.classList.toggle('collapsed');
+    button.classList.toggle('collapsed');
+    sidebar.classList.toggle('minimized');
+    
+    // Trigger map resize after animation
+    setTimeout(() => {
+        map.invalidateSize();
+    }, 300);
+});
+
 // Initialize
 loadSettings();
 initMap();
