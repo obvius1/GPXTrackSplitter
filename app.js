@@ -6,7 +6,79 @@ let gpxPolyline;
 let segmentPolylines = [];
 let isAddingPoint = false;
 let editingMarker = null;
+let markerHistory = [];
 
+// Default settings
+let settings = {
+    fitnessLevel: 2,  // 1=ongetraind, 2=beginnend, 3=gemiddeld, 4=goed, 5=zeer goed
+    backpackWeight: 15  // in kg
+};
+
+// Load settings from localStorage
+function loadSettings() {
+    const saved = localStorage.getItem('gpxSplitterSettings');
+    if (saved) {
+        try {
+            settings = JSON.parse(saved);
+        } catch (e) {
+            console.error('Failed to load settings:', e);
+        }
+    }
+}
+
+// Save settings to localStorage
+function saveSettings() {
+    localStorage.setItem('gpxSplitterSettings', JSON.stringify(settings));
+}
+
+// Get backpack weight multiplier
+function getBackpackMultiplier() {
+    // 15kg = 1.25 (25% extra), 0kg = 1.0 (geen extra)
+    // Lineair: 1 + (weight / 60)
+    // Dit geeft: 0kg=1.0, 15kg=1.25, 30kg=1.5
+    return 1 + (settings.backpackWeight / 75);
+}
+// Save current marker state to history
+function saveToHistory() {
+    const state = splitMarkers.map(marker => ({
+        pointIndex: marker.pointIndex,
+        type: marker.markerType
+    }));
+    markerHistory.push(state);
+    
+    // Limit history to last 20 states
+    if (markerHistory.length > 20) {
+        markerHistory.shift();
+    }
+    
+    updateUndoButton();
+}
+
+// Update undo button state
+function updateUndoButton() {
+    const undoBtn = document.getElementById('undoBtn');
+    undoBtn.disabled = markerHistory.length === 0;
+}
+
+// Undo last action
+function undo() {
+    if (markerHistory.length === 0) return;
+    
+    // Get previous state
+    const previousState = markerHistory.pop();
+    
+    // Clear current markers
+    splitMarkers.forEach(marker => map.removeLayer(marker));
+    splitMarkers = [];
+    
+    // Restore previous state
+    previousState.forEach(markerData => {
+        addSplitMarker(markerData.pointIndex, markerData.type, false);
+    });
+    
+    updateUndoButton();
+    updateTrackList();
+}
 // Marker types configuration
 const markerTypes = {
     split: {
@@ -110,11 +182,13 @@ function calculateSegmentStats(points) {
     
     const elevation = calculateElevation(points);
     
-    // Equivalente km: (km + hm+ / 80 + hm− / 150) × 1.2 × 1.1 (10% extra)
-    const equivalentKm = (distance + elevation.gain / 80 + elevation.loss / 150) * 1.32;
+    // Equivalente km: (km + hm+ / 80 + hm− / 150) × backpack multiplier
+    const backpackMultiplier = getBackpackMultiplier();
+    const equivalentKm = (distance + elevation.gain / 80 + elevation.loss / 150) * backpackMultiplier;
     
-    // Uren: (afstand / 4) + (hm+ / 500) + (hm- / 2000) × 1.1 (10% extra)
-    const hours = ((distance / 4) + (elevation.gain / 500) + (elevation.loss / 2000)) * 1.1;
+    // Uren: aanpassen op basis van fitness niveau
+    const baseHours = (distance / 4) + (elevation.gain / 500) + (elevation.loss / 2000);
+    const hours = baseHours * (0.9 + (3 - settings.fitnessLevel) * 0.1);
     
     return {
         distance,
@@ -160,7 +234,11 @@ function onMapClick(e) {
 }
 
 // Add split marker
-function addSplitMarker(pointIndex, type = 'split') {
+function addSplitMarker(pointIndex, type = 'split', saveHistory = true) {
+    if (saveHistory) {
+        saveToHistory();
+    }
+    
     const point = gpxData[pointIndex];
     const markerConfig = markerTypes[type];
     
@@ -181,6 +259,10 @@ function addSplitMarker(pointIndex, type = 'split') {
     
     // Add popup with marker info
     marker.bindPopup(`${markerConfig.icon} ${markerConfig.name}`);
+    
+    marker.on('dragstart', function(e) {
+        saveToHistory();
+    });
     
     marker.on('dragend', function(e) {
         const newLatLng = e.target.getLatLng();
@@ -205,11 +287,22 @@ function addSplitMarker(pointIndex, type = 'split') {
 
 // Get difficulty level and color based on equivalent km
 function getDifficulty(equivKm) {
-    if (equivKm < 30) {
+    // Thresholds gebaseerd op trainingsniveau
+    const thresholds = {
+        1: { comfortable: 20, moderate: 28, heavy: 35 },      // Ongetraind
+        2: { comfortable: 24, moderate: 32, heavy: 40 },      // Beginnend
+        3: { comfortable: 30, moderate: 38, heavy: 45 },      // Gemiddeld (origineel)
+        4: { comfortable: 36, moderate: 44, heavy: 52 },      // Goed getraind
+        5: { comfortable: 42, moderate: 52, heavy: 60 }       // Zeer goed getraind
+    };
+    
+    const t = thresholds[settings.fitnessLevel] || thresholds[3];
+    
+    if (equivKm < t.comfortable) {
         return { level: 'Comfortabel', color: '#4CAF50', bgColor: '#e8f5e9' };
-    } else if (equivKm < 38) {
+    } else if (equivKm < t.moderate) {
         return { level: 'Stevig maar haalbaar', color: '#FF9800', bgColor: '#fff3e0' };
-    } else if (equivKm < 45) {
+    } else if (equivKm < t.heavy) {
         return { level: 'Zwaar', color: '#FF5722', bgColor: '#fbe9e7' };
     } else {
         return { level: 'Zeer zwaar / enkel voor ervaren wandelaars', color: '#D32F2F', bgColor: '#ffebee' };
@@ -418,6 +511,7 @@ function formatHours(hours) {
 
 // Delete marker
 function deleteMarker(index) {
+    saveToHistory();
     map.removeLayer(splitMarkers[index]);
     splitMarkers.splice(index, 1);
     updateTrackList();
@@ -444,6 +538,8 @@ function closeMarkerEditModal() {
 function updateMarkerType() {
     if (!editingMarker) return;
     
+    saveToHistory();
+    
     const newType = document.getElementById('editMarkerTypeSelect').value;
     const markerConfig = markerTypes[newType];
     
@@ -465,6 +561,53 @@ function updateMarkerType() {
     
     closeMarkerEditModal();
     updateTrackList();
+}
+
+// Open settings modal
+function openSettingsModal() {
+    const modal = document.getElementById('settingsModal');
+    const slider = document.getElementById('fitnessLevel');
+    const backpackInput = document.getElementById('backpackWeight');
+    
+    slider.value = settings.fitnessLevel;
+    backpackInput.value = settings.backpackWeight;
+    updateFitnessDisplay();
+    modal.style.display = 'flex';
+}
+
+// Close settings modal
+function closeSettingsModal() {
+    const modal = document.getElementById('settingsModal');
+    modal.style.display = 'none';
+}
+
+// Update fitness level display
+function updateFitnessDisplay() {
+    const level = parseInt(document.getElementById('fitnessLevel').value);
+    const labels = ['', 'Ongetraind', 'Beginnend', 'Gemiddeld', 'Goed getraind', 'Zeer goed getraind'];
+    document.getElementById('fitnessLevelDisplay').textContent = labels[level];
+}
+
+// Save settings and update display
+function saveSettingsAndUpdate() {
+    settings.fitnessLevel = parseInt(document.getElementById('fitnessLevel').value);
+    settings.backpackWeight = parseFloat(document.getElementById('backpackWeight').value);
+    saveSettings();
+    closeSettingsModal();
+    
+    // Recalculate if we have data loaded
+    if (gpxData.length > 0) {
+        updateTrackList();
+    }
+}
+
+// Reset settings to default
+function resetSettings() {
+    settings.fitnessLevel = 2;
+    settings.backpackWeight = 15;
+    document.getElementById('fitnessLevel').value = 2;
+    document.getElementById('backpackWeight').value = 15;
+    updateFitnessDisplay();
 }
 
 // Save project to JSON
@@ -522,16 +665,19 @@ function loadProject(jsonData) {
         
         map.fitBounds(gpxPolyline.getBounds());
         
+        // Clear history when loading project
+        markerHistory = [];
+        
         // Restore markers (support both old and new format)
         if (projectData.markers && Array.isArray(projectData.markers)) {
             // New format (v2.0)
             projectData.markers.forEach(markerData => {
-                addSplitMarker(markerData.pointIndex, markerData.type || 'split');
+                addSplitMarker(markerData.pointIndex, markerData.type || 'split', false);
             });
         } else if (projectData.markerIndices && Array.isArray(projectData.markerIndices)) {
             // Old format (v1.0) - backwards compatibility
             projectData.markerIndices.forEach(index => {
-                addSplitMarker(index, 'split');
+                addSplitMarker(index, 'split', false);
             });
         }
         
@@ -567,9 +713,11 @@ function clearAll() {
     splitMarkers.forEach(marker => map.removeLayer(marker));
     splitMarkers = [];
     gpxData = [];
+    markerHistory = [];
     
     document.getElementById('trackList').innerHTML = '<p class="placeholder">Laad een GPX bestand om te beginnen</p>';
     document.getElementById('addPointBtn').disabled = true;
+    document.getElementById('undoBtn').disabled = true;
     document.getElementById('clearBtn').disabled = true;
     document.getElementById('saveProjectBtn').disabled = true;
 }
@@ -582,6 +730,7 @@ document.getElementById('gpxFileInput').addEventListener('change', function(e) {
     const reader = new FileReader();
     reader.onload = function(event) {
         clearAll();
+        markerHistory = [];
         
         gpxData = parseGPX(event.target.result);
         
@@ -616,6 +765,8 @@ document.getElementById('addPointBtn').addEventListener('click', function() {
     this.classList.toggle('active', isAddingPoint);
     this.textContent = isAddingPoint ? 'Klik op de kaart...' : 'Voeg punt toe (klik op kaart)';
 });
+
+document.getElementById('undoBtn').addEventListener('click', undo);
 
 document.getElementById('clearBtn').addEventListener('click', clearAll);
 
@@ -652,5 +803,20 @@ document.getElementById('markerEditModal').addEventListener('click', function(e)
     }
 });
 
+// Event listeners for settings
+document.getElementById('settingsBtn').addEventListener('click', openSettingsModal);
+document.getElementById('saveSettingsBtn').addEventListener('click', saveSettingsAndUpdate);
+document.getElementById('cancelSettingsBtn').addEventListener('click', closeSettingsModal);
+document.getElementById('resetSettingsBtn').addEventListener('click', resetSettings);
+document.getElementById('fitnessLevel').addEventListener('input', updateFitnessDisplay);
+
+// Close settings modal when clicking outside
+document.getElementById('settingsModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeSettingsModal();
+    }
+});
+
 // Initialize
+loadSettings();
 initMap();
