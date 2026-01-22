@@ -337,3 +337,133 @@ select:disabled {
 .modal-buttons button.secondary:hover {
     background: #616161;
 }
+
+/* Mobile responsive styles */
+@media (max-width: 768px) {
+    header {
+        padding: 15px 10px;
+    }
+
+    h1 {
+        font-size: 20px;
+        margin-bottom: 10px;
+    }
+
+    .header-controls {
+        flex-direction: column;
+        gap: 10px;
+        align-items: stretch;
+    }
+
+    .controls {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .project-controls {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    button {
+        width: 100%;
+        padding: 12px;
+        font-size: 16px;
+    }
+
+    input[type="file"] {
+        width: 100%;
+        padding: 10px;
+        font-size: 14px;
+    }
+
+    select {
+        width: 100%;
+        padding: 12px;
+        font-size: 16px;
+    }
+
+    .main-content {
+        flex-direction: column;
+    }
+
+    #map {
+        height: 50vh;
+        min-height: 300px;
+    }
+
+    .sidebar {
+        width: 100%;
+        max-height: 50vh;
+        box-shadow: 0 -2px 4px rgba(0,0,0,0.1);
+    }
+
+    .sidebar h2 {
+        font-size: 16px;
+    }
+
+    .track-item {
+        padding: 12px;
+        margin-bottom: 10px;
+    }
+
+    .track-item h3 {
+        font-size: 14px;
+    }
+
+    .track-stats {
+        font-size: 12px;
+        gap: 6px;
+    }
+
+    .modal-content {
+        width: 90%;
+        padding: 20px;
+        margin: 20px;
+    }
+
+    .settings-modal {
+        min-width: unset;
+        width: 90%;
+        max-width: unset;
+    }
+
+    .slider-labels {
+        font-size: 9px;
+    }
+
+    .slider-labels span {
+        padding: 0 2px;
+    }
+
+    .setting-group label {
+        font-size: 14px;
+    }
+
+    .level-display {
+        font-size: 14px;
+        padding: 6px;
+    }
+}
+
+@media (max-width: 480px) {
+    h1 {
+        font-size: 18px;
+    }
+
+    .sidebar {
+        max-height: 45vh;
+    }
+
+    #map {
+        height: 55vh;
+    }
+
+    .slider-labels {
+        font-size: 8px;
+    }
+
+    .track-stats {
+        grid-template-columns: 1fr;
+    }
+}
