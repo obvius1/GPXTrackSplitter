@@ -155,17 +155,45 @@ function calculateDistance(point1, point2) {
     return distance;
 }
 
-// Calculate elevation gain and loss
+// Calculate elevation gain and loss with smoothing
 function calculateElevation(points) {
+    if (points.length < 2) return { gain: 0, loss: 0 };
+    
+    // Apply moving average smoothing to reduce GPS noise
+    const smoothWindow = 5; // Average over 5 points
+    const smoothedElevations = [];
+    
+    for (let i = 0; i < points.length; i++) {
+        let sum = 0;
+        let count = 0;
+        
+        for (let j = Math.max(0, i - Math.floor(smoothWindow / 2)); 
+             j <= Math.min(points.length - 1, i + Math.floor(smoothWindow / 2)); 
+             j++) {
+            sum += points[j].ele;
+            count++;
+        }
+        
+        smoothedElevations.push(sum / count);
+    }
+    
+    // Calculate gain/loss with threshold to ignore small variations
+    const threshold = 2; // Only count changes > 2 meters
     let gain = 0;
     let loss = 0;
+    let cumulative = 0;
     
-    for (let i = 1; i < points.length; i++) {
-        const diff = points[i].ele - points[i-1].ele;
-        if (diff > 0) {
-            gain += diff;
-        } else {
-            loss += Math.abs(diff);
+    for (let i = 1; i < smoothedElevations.length; i++) {
+        const diff = smoothedElevations[i] - smoothedElevations[i-1];
+        cumulative += diff;
+        
+        // Only register gain/loss when cumulative change exceeds threshold
+        if (cumulative > threshold) {
+            gain += cumulative;
+            cumulative = 0;
+        } else if (cumulative < -threshold) {
+            loss += Math.abs(cumulative);
+            cumulative = 0;
         }
     }
     
