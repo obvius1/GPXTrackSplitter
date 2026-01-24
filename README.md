@@ -99,6 +99,16 @@ Geschatte wandeltijd: `((afstand/4) + (hm+/500) + (hm-/2000))` aangepast voor tr
 - ✅ Project opslaan/laden als JSON
 - ✅ Hover effecten en zoom naar segment
 - ✅ Responsive design
+- ✅ Progressive Web App (PWA) - installeerbaar op desktop en mobiel
+- ✅ Offline functionaliteit
+
+## Progressive Web App (PWA)
+
+Deze applicatie is een Progressive Web App en kan geïnstalleerd worden:
+
+**Desktop (Chrome/Edge)**: Klik op het installatie icoon in de adresbalk  
+**Android**: Menu → "App installeren"  
+**iOS**: Deel icoon → "Zet op beginscherm"
 
 ## Browser Compatibiliteit
 
