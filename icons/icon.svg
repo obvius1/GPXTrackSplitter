@@ -1,0 +1,10 @@
+<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" fill="#2196F3"/>
+  <path d="M 120 380 L 180 280 L 240 320 L 300 200 L 360 260 L 420 140" 
+        stroke="white" stroke-width="16" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="180" cy="280" r="12" fill="#FF5722"/>
+  <circle cx="240" cy="320" r="12" fill="#FF5722"/>
+  <circle cx="300" cy="200" r="12" fill="#FF5722"/>
+  <circle cx="360" cy="260" r="12" fill="#FF5722"/>
+  <text x="256" y="450" font-family="Arial, sans-serif" font-size="48" fill="white" text-anchor="middle" font-weight="bold">GPX</text>
+</svg>
