@@ -2,150 +2,340 @@
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Split GPX tracks into daily segments based on difficulty and fitness level">
-    <meta name="theme-color" content="#2196F3">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="description" content="Splits GPX routes in dagetappes, bereken de moeilijkheidsgraad en neem de kaart offline mee.">
+    <meta name="color-scheme" content="light dark">
+    <meta name="theme-color" content="#0f766e" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#0b1120" media="(prefers-color-scheme: dark)">
     <title>GPX Track Splitter</title>
-    
-    <!-- PWA Manifest -->
+
     <link rel="manifest" href="manifest.json">
-    
-    <!-- iOS Meta Tags -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="GPX Splitter">
-    <link rel="apple-touch-icon" href="icons/icon.svg">
-    
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+
+    <link rel="preconnect" href="https://tile.openstreetmap.org" crossorigin>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <div class="header-top">
-                <h1>GPX Track Splitter</h1>
-                <button id="menuToggle" class="menu-toggle" aria-label="Menu">
-                    <span></span>
-                    <span></span>
-                    <span></span>
+    <!-- De kaart vult het volledige scherm; alle bediening zweeft erboven -->
+    <div id="map" role="region" aria-label="Kaart met route"></div>
+
+    <!-- ============ Bovenbalk ============ -->
+    <header class="topbar" id="topbar">
+        <div class="topbar-brand">
+            <span class="brand-mark" aria-hidden="true">&#9968;</span>
+            <span class="brand-text">
+                <span class="brand-title">GPX Track Splitter</span>
+                <span class="brand-sub" id="routeSummary">Geen route geladen</span>
+            </span>
+        </div>
+
+        <div class="topbar-actions">
+            <input type="file" id="gpxFileInput" accept=".gpx,.xml" hidden>
+            <input type="file" id="projectFileInput" accept=".json" hidden>
+
+            <button id="openGpxBtn" class="btn btn-primary">
+                <span aria-hidden="true">&#128193;</span><span class="btn-label">Route openen</span>
+            </button>
+
+            <div class="btn-group desktop-only">
+                <button id="undoBtn" class="btn btn-icon" title="Ongedaan maken (Ctrl+Z)" aria-label="Ongedaan maken" disabled>&#8630;</button>
+                <button id="saveProjectBtn" class="btn" title="Project opslaan als JSON" disabled>
+                    <span aria-hidden="true">&#128190;</span><span class="btn-label">Opslaan</span>
+                </button>
+                <button id="exportGpxBtn" class="btn" title="Dagetappes exporteren als GPX" disabled>
+                    <span aria-hidden="true">&#11015;</span><span class="btn-label">Exporteren</span>
                 </button>
             </div>
-            <div class="header-controls">
-                <div class="controls">
-                    <input type="file" id="gpxFileInput" accept=".gpx" />
-                    <select id="markerTypeSelect" disabled>
-                        <option value="split">Splitpunt</option>
-                        <option value="wildcamp">Wildcamperen</option>
-                        <option value="camping">Camping</option>
-                        <option value="hotel">Hotel/B&B</option>
-                        <option value="rest">Rustpunt</option>
-                    </select>
-                    <button id="addPointBtn" disabled>Punt toevoegen</button>
-                    <button id="undoBtn" disabled>Ongedaan</button>
-                    <button id="clearBtn" disabled>Wissen</button>
-                </div>
-                <div class="project-controls">
-                    <input type="file" id="loadProjectBtn" accept=".json" style="display:none;" />
-                    <button id="loadProjectBtnTrigger">Laad project</button>
-                    <button id="saveProjectBtn" disabled>Bewaar project</button>
-                    <button id="settingsBtn">Instellingen</button>
-                </div>
-            </div>
-        </header>
 
-        <!-- Slide-out menu -->
-        <div id="slideMenu" class="slide-menu">
-            <div class="slide-menu-header">
-                <h2>Menu</h2>
-                <button id="closeMenu" class="close-menu">&times;</button>
-            </div>
-            <div class="slide-menu-content">
-                <button id="loadProjectBtnMobile" class="menu-button">Laad project</button>
-                <button id="saveProjectBtnMobile" disabled class="menu-button">Bewaar project</button>
-                <button id="settingsBtnMobile" class="menu-button">Instellingen</button>
+            <button id="menuToggle" class="btn btn-icon" aria-label="Menu openen" aria-expanded="false">&#9776;</button>
+        </div>
+    </header>
+
+    <!-- ============ Gereedschap links ============ -->
+    <div class="map-tools" id="mapTools" role="toolbar" aria-label="Kaartgereedschap">
+        <button id="addPointBtn" class="tool-btn" title="Punt toevoegen (A)" aria-pressed="false" disabled>
+            <span class="tool-icon" aria-hidden="true">&#128204;</span>
+            <span class="tool-label">Punt</span>
+        </button>
+        <button id="locationBtn" class="tool-btn" title="Mijn locatie (L)" aria-pressed="false">
+            <span class="tool-icon" aria-hidden="true">&#128205;</span>
+            <span class="tool-label">GPS</span>
+        </button>
+        <button id="followBtn" class="tool-btn" title="Kaart volgt mijn positie" aria-pressed="false" hidden>
+            <span class="tool-icon" aria-hidden="true">&#129517;</span>
+            <span class="tool-label">Volgen</span>
+        </button>
+        <button id="fitRouteBtn" class="tool-btn" title="Hele route in beeld (F)" disabled>
+            <span class="tool-icon" aria-hidden="true">&#10530;</span>
+            <span class="tool-label">Route</span>
+        </button>
+        <button id="offlineMapBtn" class="tool-btn" title="Offline kaart beheren">
+            <span class="tool-icon" aria-hidden="true">&#128229;</span>
+            <span class="tool-label">Offline</span>
+        </button>
+    </div>
+
+    <!-- ============ Zijpaneel met dagetappes ============ -->
+    <aside class="panel" id="panel" aria-label="Dagetappes">
+        <div class="panel-header">
+            <button id="panelToggle" class="panel-toggle" aria-expanded="true" aria-controls="panelBody">
+                <span class="panel-chevron" aria-hidden="true">&#9662;</span>
+                <span class="panel-title">Dagetappes</span>
+                <span class="panel-count" id="panelCount">0</span>
+            </button>
+            <button id="autoSplitBtn" class="btn btn-icon" title="Automatisch in dagen verdelen" aria-label="Automatisch verdelen" disabled>&#10022;</button>
+            <button id="clearBtn" class="btn btn-icon btn-danger-ghost" title="Alles wissen" aria-label="Alles wissen" disabled>&#128465;</button>
+        </div>
+        <div class="panel-body" id="panelBody">
+            <div id="trackList" class="track-list">
+                <!-- Wordt door app.js vervangen; dit is wat je ziet voor het script draait -->
+                <div class="empty-state">
+                    <span class="empty-icon" aria-hidden="true">&#129406;</span>
+                    <p class="empty-title">Nog geen route</p>
+                    <p class="empty-text">Open een GPX-bestand of een eerder bewaard project om te beginnen.</p>
+                </div>
             </div>
         </div>
-        <div id="menuOverlay" class="menu-overlay"></div>
+    </aside>
 
-        <div class="main-content">
-            <div id="map"></div>
-            
-            <div class="sidebar">
-                <div class="sidebar-header">
-                    <h2>Tracks overzicht</h2>
-                    <button id="toggleSidebar" class="toggle-sidebar">▼</button>
-                </div>
-                <div id="trackList" class="track-list">
-                    <p class="placeholder">Laad een GPX bestand om te beginnen</p>
-                </div>
-            </div>
+    <!-- ============ Balk voor punt-plaatsen ============ -->
+    <div class="place-bar" id="placeBar" hidden>
+        <div class="place-bar-hint">
+            <strong>Klik op de route</strong> om een punt te plaatsen &middot; <kbd>Esc</kbd> om te stoppen
+        </div>
+        <div class="type-chips" id="typeChips" role="radiogroup" aria-label="Type punt"></div>
+    </div>
+
+    <!-- ============ Balk tijdens het tekenen van een gebied ============ -->
+    <div class="place-bar" id="drawBar" hidden>
+        <div class="place-bar-hint">
+            <strong>Gebied tekenen</strong><br>
+            Klik of tik de hoekpunten aan &middot; versleep ze om bij te sturen
+        </div>
+        <div class="draw-actions">
+            <button id="drawFinishBtn" class="btn btn-primary">Klaar</button>
+            <button id="drawCancelBtn" class="btn btn-quiet">Annuleren</button>
         </div>
     </div>
 
-    <!-- Modal voor marker type wijzigen -->
-    <div id="markerEditModal" class="modal">
+    <!-- ============ Statuspil ============ -->
+    <div class="status-pill" id="statusPill" hidden></div>
+
+    <!-- ============ Meldingen ============ -->
+    <div class="toasts" id="toasts" role="status" aria-live="polite"></div>
+
+    <!-- ============ Schuifmenu ============ -->
+    <div id="menuOverlay" class="overlay"></div>
+    <nav id="slideMenu" class="slide-menu" aria-label="Hoofdmenu">
+        <div class="slide-menu-header">
+            <h2>Menu</h2>
+            <button id="closeMenu" class="btn btn-icon" aria-label="Menu sluiten">&times;</button>
+        </div>
+        <div class="slide-menu-content">
+            <button id="menuOpenGpx" class="menu-button">&#128193; Route openen</button>
+            <button id="menuLoadProject" class="menu-button">&#128194; Project laden</button>
+            <button id="menuSaveProject" class="menu-button" disabled>&#128190; Project opslaan</button>
+            <button id="menuExportGpx" class="menu-button" disabled>&#11015; Dagetappes exporteren</button>
+            <hr class="menu-sep">
+            <button id="menuAutoSplit" class="menu-button" disabled>&#10022; Automatisch verdelen</button>
+            <button id="menuOffline" class="menu-button">&#128229; Offline kaart</button>
+            <button id="menuSettings" class="menu-button">&#9881; Instellingen</button>
+            <hr class="menu-sep">
+            <button id="menuClear" class="menu-button danger" disabled>&#128465; Alles wissen</button>
+            <p class="menu-footer" id="menuVersion"></p>
+        </div>
+    </nav>
+
+    <!-- ============ Punt bewerken ============ -->
+    <div id="markerEditModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="markerEditTitle">
         <div class="modal-content">
-            <h3>Wijzig punt type</h3>
-            <select id="editMarkerTypeSelect">
-                <option value="split">🚩 Splitpunt</option>
-                <option value="wildcamp">⛺ Wildcamperen</option>
-                <option value="camping">🏕️ Camping</option>
-                <option value="hotel">🏨 Hotel/B&B</option>
-                <option value="rest">☕ Rustpunt</option>
-            </select>
+            <div class="modal-head">
+                <h3 id="markerEditTitle">Punt aanpassen</h3>
+                <button class="btn btn-icon modal-close" data-close="markerEditModal" aria-label="Sluiten">&times;</button>
+            </div>
+            <div class="field">
+                <label for="editMarkerName">Naam (optioneel)</label>
+                <input type="text" id="editMarkerName" maxlength="60" placeholder="bv. Theth of Valbona">
+            </div>
+            <div class="field">
+                <span class="field-label">Type</span>
+                <div class="type-chips" id="editTypeChips" role="radiogroup" aria-label="Type punt"></div>
+            </div>
+            <div class="modal-buttons">
+                <button id="markerSaveBtn" class="btn btn-primary">Bewaren</button>
+                <button id="markerDeleteBtn" class="btn btn-danger">Verwijderen</button>
+            </div>
         </div>
     </div>
-    <!-- Settings Modal -->
-    <div id="settingsModal" class="modal">
-        <div class="modal-content settings-modal">
-            <h3>Instellingen</h3>
-            
-            <div class="setting-group">
-                <label>Trainingsniveau</label>
-                <input type="range" id="fitnessLevel" min="1" max="5" value="2" step="1">
-                <div class="slider-labels">
-                    <span>Ongetraind</span>
-                    <span>Beginnend</span>
-                    <span>Gemiddeld</span>
-                    <span>Goed</span>
-                    <span>Zeer goed</span>
+
+    <!-- ============ Automatisch verdelen ============ -->
+    <div id="autoSplitModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="autoSplitTitle">
+        <div class="modal-content">
+            <div class="modal-head">
+                <h3 id="autoSplitTitle">Automatisch verdelen</h3>
+                <button class="btn btn-icon modal-close" data-close="autoSplitModal" aria-label="Sluiten">&times;</button>
+            </div>
+            <p class="help">De route wordt opgedeeld in even zware dagen, waarbij stijgen en dalen meetellen - niet alleen de kilometers.</p>
+
+            <div class="field">
+                <label for="autoSplitDays">Aantal dagen</label>
+                <div class="input-row">
+                    <input type="range" id="autoSplitDays" min="2" max="20" value="5" step="1">
+                    <output id="autoSplitDaysOut" class="value-badge small">5 dagen</output>
                 </div>
-                <div id="fitnessLevelDisplay" class="level-display">Gemiddeld</div>
-            </div>
-
-            <div class="setting-group">
-                <label>Rugzak gewicht (kg)</label>
-                <input type="number" id="backpackWeight" min="0" max="25" value="15" step="0.5">
-                <div class="setting-help">15kg = +25% zwaarte. Lichter/zwaarder wordt proportioneel berekend.</div>
-            </div>
-
-            <div class="setting-info">
-                <p>Pas de moeilijkheidsberekening aan op basis van jouw trainingsniveau. Dit heeft invloed op de classificatie (Comfortabel, Zwaar, etc.).</p>
+                <p class="help" id="autoSplitPreview"></p>
             </div>
 
             <div class="modal-buttons">
-                <button id="saveSettingsBtn">Opslaan</button>
-                <button id="cancelSettingsBtn" class="secondary">Annuleren</button>
-                <button id="resetSettingsBtn" class="secondary">Reset naar standaard</button>
+                <button id="autoSplitApply" class="btn btn-primary">Verdelen</button>
+                <button class="btn btn-quiet" data-close="autoSplitModal">Annuleren</button>
             </div>
         </div>
     </div>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- ============ Instellingen ============ -->
+    <div id="settingsModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+        <div class="modal-content settings-modal">
+            <div class="modal-head">
+                <h3 id="settingsTitle">Instellingen</h3>
+                <button class="btn btn-icon modal-close" data-close="settingsModal" aria-label="Sluiten">&times;</button>
+            </div>
+
+            <div class="field">
+                <label for="fitnessLevel">Trainingsniveau</label>
+                <input type="range" id="fitnessLevel" min="1" max="5" value="2" step="1">
+                <div class="range-ticks">
+                    <span>Ongetraind</span><span>Beginnend</span><span>Gemiddeld</span><span>Goed</span><span>Zeer goed</span>
+                </div>
+                <div id="fitnessLevelDisplay" class="value-badge">Beginnend</div>
+            </div>
+
+            <div class="field">
+                <label for="backpackWeight">Rugzakgewicht</label>
+                <div class="input-row">
+                    <input type="range" id="backpackWeight" min="0" max="30" value="15" step="0.5">
+                    <output id="backpackWeightOut" class="value-badge small">15 kg</output>
+                </div>
+                <p class="help">15 kg maakt een etappe ongeveer 20% zwaarder; lichter of zwaarder telt evenredig mee.</p>
+            </div>
+
+            <div class="field">
+                <label for="dayStartDate">Startdatum (optioneel)</label>
+                <input type="date" id="dayStartDate">
+                <p class="help">Toont een datum bij elke dagetappe.</p>
+            </div>
+
+            <div class="setting-info">
+                <p>Het trainingsniveau bepaalt wanneer een etappe comfortabel, stevig of zwaar heet, en past de geschatte stapduur aan.</p>
+            </div>
+
+            <div class="modal-buttons">
+                <button id="saveSettingsBtn" class="btn btn-primary">Opslaan</button>
+                <button id="resetSettingsBtn" class="btn btn-quiet">Standaardwaarden</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ Offline kaart ============ -->
+    <div id="offlineMapModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="offlineTitle">
+        <div class="modal-content offline-map-modal">
+            <div class="modal-head">
+                <h3 id="offlineTitle">Offline kaart</h3>
+                <button class="btn btn-icon modal-close" data-close="offlineMapModal" aria-label="Sluiten">&times;</button>
+            </div>
+
+            <div class="tabs" role="tablist">
+                <button class="tab-btn active" data-tab="download" role="tab" aria-selected="true">Downloaden</button>
+                <button class="tab-btn" data-tab="manage" role="tab" aria-selected="false">Opgeslagen gebieden</button>
+            </div>
+
+            <div id="downloadTab" class="tab-content active" role="tabpanel">
+                <div class="setting-info">
+                    <p>Teken een gebied op de kaart, of neem een strook rond je route. Alleen tegels binnen dat gebied worden bewaard.</p>
+                </div>
+
+                <div class="area-choices">
+                    <button id="selectAreaBtn" class="btn">&#9999;&#65039; Gebied tekenen</button>
+                    <button id="routeBufferBtn" class="btn" disabled>&#12316;&#65039; Strook rond route</button>
+                </div>
+
+                <div class="field">
+                    <span class="field-label">Zoombereik</span>
+                    <div class="zoom-row">
+                        <div class="zoom-col">
+                            <label class="zoom-caption" for="minZoom">Van (overzicht)</label>
+                            <input type="range" id="minZoom" min="5" max="17" value="10" step="1">
+                            <output id="minZoomDisplay" class="value-badge small">10 &middot; Stad</output>
+                        </div>
+                        <div class="zoom-col">
+                            <label class="zoom-caption" for="maxZoom">Tot (detail)</label>
+                            <input type="range" id="maxZoom" min="5" max="17" value="15" step="1">
+                            <output id="maxZoomDisplay" class="value-badge small">15 &middot; Wandelpaden</output>
+                        </div>
+                    </div>
+                    <p class="help">Elk zoomniveau erbij is ongeveer vier keer zoveel tegels. Zoom 15 volstaat om paden te volgen.</p>
+                </div>
+
+                <div id="downloadEstimate" class="estimate" hidden>
+                    <div class="estimate-main">
+                        <span id="tileCount">0 tegels</span>
+                        <span id="sizeEstimate">~0 MB</span>
+                        <span id="timeEstimate"></span>
+                    </div>
+                    <div id="estimateWarning" class="estimate-warning" hidden></div>
+                </div>
+
+                <div id="downloadProgress" class="progress-wrap" hidden>
+                    <div class="progress-bar"><div id="progressFill" class="progress-fill"></div></div>
+                    <div class="progress-row">
+                        <span id="progressText">0 / 0 tegels</span>
+                        <button id="abortDownloadBtn" class="btn btn-quiet btn-sm">Stoppen</button>
+                    </div>
+                    <details id="errorDetails" hidden>
+                        <summary>Details</summary>
+                        <div id="errorLog" class="error-log"></div>
+                    </details>
+                </div>
+
+                <p class="help osm-note">De tegels komen van vrijwilligers van OpenStreetMap. Download alleen wat je echt nodig hebt.</p>
+
+                <div class="modal-buttons">
+                    <button id="startDownloadBtn" class="btn btn-primary" disabled>Download starten</button>
+                    <button id="cancelDownloadBtn" class="btn btn-quiet">Sluiten</button>
+                </div>
+            </div>
+
+            <div id="manageTab" class="tab-content" role="tabpanel">
+                <div id="storageList" class="storage-list"></div>
+                <div id="storageQuota" class="storage-quota"></div>
+                <div class="modal-buttons">
+                    <button id="closeManageBtn" class="btn btn-quiet">Sluiten</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ Exporteren ============ -->
+    <div id="exportModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="exportTitle">
+        <div class="modal-content">
+            <div class="modal-head">
+                <h3 id="exportTitle">Dagetappes exporteren</h3>
+                <button class="btn btn-icon modal-close" data-close="exportModal" aria-label="Sluiten">&times;</button>
+            </div>
+            <p class="help">Exporteer je opgesplitste route als GPX, klaar voor OsmAnd, Komoot, Garmin of je horloge.</p>
+            <div class="export-choices" id="exportChoices"></div>
+            <div class="modal-buttons">
+                <button id="closeExportBtn" class="btn btn-quiet">Sluiten</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
     <script src="app.js"></script>
-    
-    <!-- Register Service Worker -->
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/service-worker.js')
-                    .then(registration => {
-                        console.log('Service Worker registered:', registration);
-                    })
-                    .catch(error => {
-                        console.log('Service Worker registration failed:', error);
-                    });
-            });
-        }
-    </script>
 </body>
 </html>

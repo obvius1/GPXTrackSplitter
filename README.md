@@ -1,8 +1,6 @@
 # GPX Track Splitter
 
-> Dit project is volledig "vibe coded" met behulp van GitHub Copilot
-
-Een webapplicatie om GPX wandel- en fietsroutes op te splitsen in kleinere segmenten en de moeilijkheidsgraad per segment te berekenen.
+Een webapplicatie om GPX wandel- en fietsroutes op te splitsen in dagetappes, de zwaarte per etappe te berekenen en de kaart offline mee te nemen.
 
 ## Live Demo
 
@@ -10,55 +8,75 @@ Een webapplicatie om GPX wandel- en fietsroutes op te splitsen in kleinere segme
 
 ## Wat doet deze applicatie?
 
-GPX Track Splitter helpt je bij het plannen van meerdaagse wandel- of fietstochten door:
-- GPX bestanden te laden en op een kaart te visualiseren
-- De route op te splitsen in dagstappen of segmenten
-- Automatisch de moeilijkheidsgraad per segment te berekenen
-- Rekening te houden met je trainingsniveau en rugzak gewicht
-- Verschillende stopplaatsen te markeren (camping, hotel, wildcamperen, etc.)
+GPX Track Splitter helpt je bij het plannen van meerdaagse tochten:
+
+- GPX-bestanden laden en op een interactieve kaart tonen
+- De route in dagetappes verdelen, met de hand of automatisch
+- Per etappe afstand, hoogtemeters, equivalente kilometers en stapduur berekenen
+- Rekening houden met je trainingsniveau en rugzakgewicht
+- Overnachtingen en rustpunten markeren (camping, hotel, wildkamperen, ...)
+- Elke dagetappe exporteren als GPX voor je horloge, OsmAnd, Komoot of Garmin
+- Kaarttegels offline bewaren voor gebieden zonder bereik
 
 ## Hoe werkt het?
 
 ### 1. Route laden
-- Upload een GPX bestand via de file input
-- De route verschijnt automatisch op de interactieve kaart
-- Je ziet direct statistieken voor de volledige route
+Klik op **Route openen** en kies een GPX-bestand. Routes met `<trk>` of `<rte>` werken allebei; bestaat de GPX uit meerdere losse stukken, dan tellen de sprongen ertussen niet mee als gewandelde afstand.
 
-### 2. Route opsplitsen
-- Selecteer een punt type (Splitpunt, Wildcamperen, Camping, Hotel/B&B, Rustpunt)
-- Klik op "Voeg punt toe"
-- Klik op de kaart waar je het segment wilt afsluiten
-- De applicatie vindt automatisch het dichtstbijzijnde punt op de route
+Je werk wordt automatisch bewaard in de browser. Sluit je het tabblad per ongeluk, dan staat je route er bij het openen gewoon weer.
+
+### 2. Verdelen in dagen
+
+**Automatisch**: klik op het ✦-icoon in het paneel en kies het aantal dagen. De route wordt verdeeld in even *zware* dagen (stijgen en dalen tellen mee, niet alleen de kilometers).
+
+**Met de hand**: klik op **Punt**, kies een type en klik op de route. De modus blijft actief, dus je kunt meerdere punten na elkaar plaatsen. `Esc` sluit af.
 
 ### 3. Punten aanpassen
-- **Verplaatsen**: Sleep markers naar een nieuwe positie
-- **Type wijzigen**: Klik op een marker en selecteer een nieuw type
-- **Verwijderen**: Gebruik de "Verwijder punt" knop bij een segment
-- **Ongedaan maken**: Gebruik de paarse "Ongedaan maken" knop
+- **Verplaatsen**: sleep een punt; het springt naar het dichtstbijzijnde punt op de route en de etappes worden opnieuw gesorteerd
+- **Type of naam wijzigen**: klik op een punt
+- **Verwijderen**: via het punt zelf of met "Punt weg" op de dagkaart
+- **Ongedaan maken**: de ↶-knop of `Ctrl+Z`
 
-### 4. Instellingen aanpassen
-- Klik op "Instellingen"
-- **Trainingsniveau**: Pas aan tussen Ongetraind en Zeer goed getraind
-- **Rugzak gewicht**: Geef het gewicht van je rugzak in (0-25 kg)
-- Deze instellingen worden lokaal opgeslagen in je browser
+### 4. Instellingen
+- **Trainingsniveau**: van ongetraind tot zeer goed getraind
+- **Rugzakgewicht**: 15 kg maakt een etappe ongeveer 20% zwaarder
+- **Startdatum**: toont een datum bij elke dagetappe
 
-### 5. Project opslaan/laden
-- **Bewaar project**: Slaat je route en alle splitpunten op als JSON bestand
-- **Laad project**: Laad een eerder opgeslagen project terug
+Deze instellingen worden lokaal in je browser bewaard.
+
+### 5. Bewaren en exporteren
+- **Project opslaan**: je route en punten als JSON-bestand
+- **Exporteren**: elke dag als apart GPX-bestand, alles in één GPX met een track per dag, of enkel de punten als waypoints
+
+### 6. Offline kaart
+Via **Offline** kies je een gebied, met een getekende veelhoek of als strook van ruim een kilometer rond je route. Alleen de tegels binnen dat gebied worden opgehaald; de schatting toont vooraf hoeveel tegels, hoeveel MB en hoe lang het ongeveer duurt. Een lopende download kun je stoppen; wat al binnen is blijft bruikbaar.
+
+Opgeslagen gebieden staan met een stippellijn op de kaart. In "Opgeslagen gebieden" zie je het verbruik en verwijder je wat je niet meer nodig hebt; tegels die een ander gebied ook gebruikt blijven staan.
+
+> De tegels komen van vrijwilligers van OpenStreetMap. Download alleen het gebied dat je echt nodig hebt - zie de [tile usage policy](https://operations.osmfoundation.org/policies/tiles/).
+
+### 7. Onderweg
+**GPS** toont je positie met een nauwkeurigheidscirkel, **Volgen** laat de kaart meebewegen. Onderaan verschijnt hoever het nog is tot het volgende punt op je route, en of je offline bent.
+
+## Sneltoetsen
+
+| Toets | Actie |
+|-------|-------|
+| `A` | Punt toevoegen aan/uit |
+| `L` | GPS aan/uit |
+| `F` | Hele route in beeld |
+| `Ctrl+Z` | Ongedaan maken |
+| `Esc` | Modus of venster sluiten |
 
 ## Moeilijkheidsberekening
 
 ### Equivalente kilometers
-De applicatie berekent equivalente kilometers op basis van:
-- **Afstand** in kilometers
-- **Hoogtemeters stijging** (÷ 80)
-- **Hoogtemeters daling** (÷ 150)
-- **Rugzak gewicht** (15kg = ×1.25)
+`(afstand + hm↑/80 + hm↓/150) × rugzakfactor`, met rugzakfactor `1 + gewicht/75` (15 kg = ×1,20).
 
-Formule: `(afstand + hm↑/80 + hm↓/150) × rugzak_multiplier`
+Hoogtemeters worden berekend over een voortschrijdend gemiddelde van 5 punten, met een drempel van 0,5 m tegen GPS-ruis.
 
-### Moeilijkheidsclassificatie
-De thresholds voor moeilijkheidsgraad passen zich aan op basis van je trainingsniveau:
+### Classificatie
+De grenzen schuiven mee met je trainingsniveau:
 
 | Niveau | Comfortabel | Stevig | Zwaar |
 |--------|-------------|--------|-------|
@@ -69,51 +87,35 @@ De thresholds voor moeilijkheidsgraad passen zich aan op basis van je trainingsn
 | Zeer goed | < 42 km | 42-52 km | 52-60 km |
 
 ### Tijdsberekening
-Geschatte wandeltijd: `((afstand/4) + (hm+/500) + (hm-/2000))` aangepast voor trainingsniveau
+`(afstand/4) + (hm↑/500) + (hm↓/2000)`, aangepast aan het trainingsniveau. Het rugzakgewicht telt hier (nog) niet in mee.
 
-## Marker types
+## Punttypes
 
-- 🚩 **Splitpunt** (rood) - Algemeen splitpunt
-- ⛺ **Wildcamperen** (groen) - Wildcampeerlocatie
-- 🏕️ **Camping** (blauw) - Officiële camping
-- 🏨 **Hotel/B&B** (paars) - Accommodatie
-- ☕ **Rustpunt** (oranje) - Pauze of rustlocatie
+🚩 Splitpunt · ⛺ Wildkamperen · 🏕️ Camping · 🏨 Hotel/B&B · ☕ Rustpunt
 
 ## Technologie
 
-- Pure HTML/CSS/JavaScript (geen frameworks)
-- [Leaflet.js](https://leafletjs.com/) voor interactieve kaarten
-- OpenStreetMap tiles
-- localStorage voor settings persistentie
-- Client-side GPX parsing
+- Pure HTML/CSS/JavaScript, geen frameworks en geen buildstap
+- [Leaflet.js](https://leafletjs.com/) met OpenStreetMap-tegels
+- IndexedDB voor offline tegels en de automatisch bewaarde sessie
+- localStorage voor instellingen
+- Service worker voor de app zelf (relatieve paden, werkt dus ook onder een submap zoals GitHub Pages)
+- Donkere modus volgt je systeeminstelling
 
-## Features
+## Progressive Web App
 
-- ✅ GPX bestand upload en parsing
-- ✅ Interactieve kaart met route visualisatie
-- ✅ Dynamische segment kleuren op basis van moeilijkheidsgraad
-- ✅ 5 verschillende marker types met kleuren
-- ✅ Versleepbare en bewerkbare markers
-- ✅ Undo functionaliteit (laatste 20 acties)
-- ✅ Configureerbare settings (fitness niveau, rugzak gewicht)
-- ✅ Project opslaan/laden als JSON
-- ✅ Hover effecten en zoom naar segment
-- ✅ Responsive design
-- ✅ Progressive Web App (PWA) - installeerbaar op desktop en mobiel
-- ✅ Offline functionaliteit
+Installeerbaar op desktop en mobiel:
 
-## Progressive Web App (PWA)
+**Desktop (Chrome/Edge)**: installatie-icoon in de adresbalk
+**Android**: Menu → "App installeren"
+**iOS**: Deel-icoon → "Zet op beginscherm"
 
-Deze applicatie is een Progressive Web App en kan geïnstalleerd worden:
-
-**Desktop (Chrome/Edge)**: Klik op het installatie icoon in de adresbalk  
-**Android**: Menu → "App installeren"  
-**iOS**: Deel icoon → "Zet op beginscherm"
+> Op iOS wordt opslag van websites die *niet* op het beginscherm staan na ongeveer een week zonder gebruik gewist. Zet de app op je beginscherm als je de offline kaart lang vooraf downloadt.
 
 ## Browser Compatibiliteit
 
-Werkt in alle moderne browsers die HTML5 en ES6+ ondersteunen.
+Alle moderne browsers met ES2020-ondersteuning (Chrome/Edge 105+, Firefox 110+, Safari 15.4+).
 
 ## Licentie
 
-Open source - gebruik en pas aan naar believen.
+MIT - zie [LICENSE](LICENSE).

@@ -1,19 +1,33 @@
 {
   "name": "GPX Track Splitter",
   "short_name": "GPX Splitter",
-  "description": "Split GPX tracks into daily segments based on difficulty and fitness level",
-  "start_url": "/GPXTrackSplitter/",
-  "scope": "/GPXTrackSplitter/",
+  "description": "Splits GPX routes in dagetappes, bereken de zwaarte per dag en neem de kaart offline mee.",
+  "lang": "nl",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#2196F3",
+  "background_color": "#f1f5f9",
+  "theme_color": "#0f766e",
   "orientation": "any",
+  "categories": ["navigation", "travel", "sports"],
   "icons": [
     {
-      "src": "icons/icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }
