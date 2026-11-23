@@ -328,11 +328,22 @@ function smoothedPerRun(points) {
     return out;
 }
 
-/** Hoogtemeters met voortschrijdend gemiddelde en drempel tegen GPS-ruis. */
-function calculateElevation(points) {
-    if (points.length < 2) return { gain: 0, loss: 0 };
+// De afgevlakte hoogtes van de hele route, eenmaal berekend. De sleutel is de
+// array zelf: bij een nieuwe route wijst gpxData naar een nieuwe array, en dan
+// vervalt deze vanzelf.
+let smoothCache = { source: null, values: [] };
 
-    const smoothed = smoothElevations(points);
+function trackSmoothed() {
+    if (smoothCache.source !== gpxData) {
+        smoothCache = { source: gpxData, values: smoothedPerRun(gpxData) };
+    }
+    return smoothCache.values;
+}
+
+/** Hoogtemeters uit afgevlakte hoogtes, met een drempel tegen GPS-ruis. */
+function calculateElevation(smoothed) {
+    if (smoothed.length < 2) return { gain: 0, loss: 0 };
+
     const threshold = ELEVATION_THRESHOLD;
     let gain = 0, loss = 0, cumulative = 0;
 
@@ -358,15 +369,28 @@ function splitRuns(points) {
     return runs;
 }
 
-function calculateSegmentStats(points) {
+/**
+ * baseIndex is de plaats van points[0] in gpxData. Daarmee knippen we het stuk
+ * uit de afvlakking van de hele route, in plaats van per dag opnieuw te
+ * beginnen: dat laatste kostte op elke dagovergang hoogtemeters, waardoor de
+ * dagen samen minder gaven dan dezelfde route in een keer.
+ */
+function calculateSegmentStats(points, baseIndex = 0) {
     let distance = 0, gain = 0, loss = 0;
+
+    const whole = trackSmoothed();
+    const fits = baseIndex >= 0 && baseIndex + points.length <= whole.length;
+    let offset = baseIndex;
 
     // Per aaneengesloten stuk rekenen: de sprong tussen twee stukken is niet gewandeld
     for (const run of splitRuns(points)) {
         for (let i = 1; i < run.length; i++) distance += calculateDistance(run[i - 1], run[i]);
-        const elevation = calculateElevation(run);
+
+        const smoothed = fits ? whole.slice(offset, offset + run.length) : smoothElevations(run);
+        const elevation = calculateElevation(smoothed);
         gain += elevation.gain;
         loss += elevation.loss;
+        offset += run.length;
     }
 
     const equivalentKm = (distance + gain / 80 + loss / 150) * getBackpackMultiplier();
@@ -427,7 +451,7 @@ function getSegments() {
 
 /** Opgetelde zwaarte (equivalente km) tot aan elk punt van de route. */
 function effortProfile() {
-    const smoothed = smoothedPerRun(gpxData);
+    const smoothed = trackSmoothed();
     const profile = new Array(gpxData.length).fill(0);
     let accumulator = 0;
     let total = 0;
@@ -765,7 +789,7 @@ function renderTrackList() {
 
     segments.forEach((segment, index) => {
         const points = gpxData.slice(segment.start, segment.end + 1);
-        const stats = calculateSegmentStats(points);
+        const stats = calculateSegmentStats(points, segment.start);
         const difficulty = getDifficulty(stats.equivalentKm);
         const color = cssVar(difficulty.varName);
 

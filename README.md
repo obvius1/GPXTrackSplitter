@@ -74,6 +74,11 @@ Opgeslagen gebieden staan met een stippellijn op de kaart. In "Opgeslagen gebied
 `(afstand + hm↑/80 + hm↓/150) × rugzakfactor`, met rugzakfactor `1 + gewicht/75` (15 kg = ×1,20).
 
 Hoogtemeters worden berekend over een voortschrijdend gemiddelde van 5 punten, met een drempel van 0,5 m tegen GPS-ruis.
+Die afvlakking loopt over de hele route, niet per dag: anders zou er bij elke dagovergang een stukje stijging wegvallen.
+
+Verschillen met Komoot of Strava zijn normaal. Elk programma gebruikt een eigen hoogtemodel en een eigen filter, en
+een verschil van 3 tot 5 procent op dezelfde route is gebruikelijk. Deze app rekent met de hoogtes die in het
+GPX-bestand zelf staan en verzint er niets bij.
 
 ### Classificatie
 De grenzen schuiven mee met je trainingsniveau:
